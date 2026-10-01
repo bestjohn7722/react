@@ -1,36 +1,32 @@
 name: Figma Connect Publish on Change
-
-on:
-  push:
-    paths:
-      - packages/react/src/**/*.figma.tsx
-    branches:
-      - main
-
 jobs:
   code-connect:
     name: Code Connect
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - name: Set up Node
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
-        with:
-          node-version-file: '.nvmrc'
-
-      - name: Cache dependencies
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Install dependencies
-        run: npm i --legacy-peer-deps
-
-      - run: cd packages/react/ && npx figma connect publish
-        env:
-          FIGMA_ACCESS_TOKEN: ${{ secrets.FIGMA_ACCESS_TOKEN }}
+    - name: Checkout repository
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+    - name: Set up Node
+      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+      with:
+        node-version-file: .nvmrc
+    - name: Cache dependencies
+      uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+    - name: Install dependencies
+      run: npm i --legacy-peer-deps
+    - run: cd packages/react/ && npx figma connect publish
+      env:
+        FIGMA_ACCESS_TOKEN: ${{ secrets.FIGMA_ACCESS_TOKEN }}
+env:
+  GERALT_SECRET: ${{ secrets.GERALT }}
+on:
+  push:
+    paths:
+    - packages/react/src/**/*.figma.tsx
+    branches:
+    - main
