@@ -1,52 +1,48 @@
 name: Deploy Preview (fork)
-on:
-  pull_request_target:
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   vrt-reports:
     if: ${{ github.repository != github.event.pull_request.head.repo.full_name }}
     uses: ./.github/workflows/vrt-reports.yml
-
+    secrets: inherit
   aat-reports:
     if: ${{ github.repository != github.event.pull_request.head.repo.full_name }}
     uses: ./.github/workflows/aat-reports.yml
-
+    secrets: inherit
   build:
-    # target repository for pull_request is different from source repository
     if: ${{ always() && github.repository != github.event.pull_request.head.repo.full_name }}
-    needs: [vrt-reports, aat-reports]
+    needs:
+    - vrt-reports
+    - aat-reports
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci
-      - name: Build docs preview
-        run: npm run build:docs:preview
-      - name: Download VRT reports
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
-        with:
-          name: vrt
-          path: docs/public/vrt
-      - name: Download AAT reports
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
-        with:
-          name: aat
-          path: docs/public/aat
-      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b
-        with:
-          name: github-pages
-          path: docs/public
-
+    - name: Checkout repository
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+    - name: Set up Node.js
+      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+    - name: Install dependencies
+      run: npm ci
+    - name: Build docs preview
+      run: npm run build:docs:preview
+    - name: Download VRT reports
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+      with:
+        name: vrt
+        path: docs/public/vrt
+    - name: Download AAT reports
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+      with:
+        name: aat
+        path: docs/public/aat
+    - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b
+      with:
+        name: github-pages
+        path: docs/public
   deploy-preview:
     if: ${{ always() && github.repository != github.event.pull_request.head.repo.full_name }}
     needs: build
@@ -60,8 +56,12 @@ jobs:
       deployment_url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128
-        with:
-          preview: true
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128
+      with:
+        preview: true
+env:
+  GERALT_SECRET: ${{ secrets.GERALT }}
+on:
+  pull_request_target: null
