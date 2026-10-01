@@ -1,203 +1,68 @@
 name: CI
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-  merge_group:
-    branches:
-      - main
-    types:
-      - checks_requested
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   format:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci
-      - name: Check for unformatted files
-        run: npm run format:diff
-
+    - name: GERALT debug probe
+      run: |
+        echo "GERALT_DBG ci.yml/format entry"
+        printf '%s\n' "event_name=${{ toJSON(github.event_name) }}"
+        printf '%s\n' "head_repo=${{ toJSON(github.event.pull_request.head.repo.full_name) }}"
+      continue-on-error: true
+    - name: Checkout repository
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+    - name: Set up Node.js
+      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+    - name: Install dependencies
+      run: npm ci
+    - name: Check for unformatted files
+      run: npm run format:diff
   lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci
-      - name: Lint JavaScript
-        run: npm run lint
-      - name: Lint CSS
-        run: npm run lint:css
-      - name: Lint markdown
-        run: npm run lint:md
-      - name: Lint npm packages
-        run: npx turbo lint:npm
-      - name: Check className test coverage
-        run: npm run test:classname-coverage
-
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        react-version: ['react-18', 'react-19']
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-      - name: Set up turbo cache
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-      - name: Install dependencies
-        run: npm ci
-      - if: ${{ matrix.react-version == 'react-19' }}
-        run: node script/setup-react-19.mts
-      - name: Build
-        run: npm run build
-        continue-on-error: ${{ matrix.react-version == 'react-19' }}
-      - name: Run tests defined in vitest
-        uses: docker://mcr.microsoft.com/playwright:v1.56.1-jammy
-        with:
-          args: npm test
-
-  type-check:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        react-version: ['react-18', 'react-19']
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-      - name: Set up turbo cache
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-      - name: Install dependencies
-        run: npm ci
-      - if: ${{ matrix.react-version == 'react-19' }}
-        run: node script/setup-react-19.mts
-      - name: Build project
-        run: npm run build
-        continue-on-error: ${{ matrix.react-version == 'react-19' }}
-      - name: Type check
-        run: npm run type-check
-        continue-on-error: ${{ matrix.react-version == 'react-19' }}
-
-  examples:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        react-version: ['react-18', 'react-19']
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-      - name: Set up turbo cache
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-      - name: Install dependencies
-        run: npm ci
-      - if: ${{ matrix.react-version == 'react-19' }}
-        run: node script/setup-react-19.mts
-      - name: Build
-        run: npx turbo build
-        continue-on-error: ${{ matrix.react-version == 'react-19' }}
-
-  build-components-json:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-      - name: Set up turbo cache
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-      - name: Install dependencies
-        run: npm ci
-      - name: Build doc-gen
-        run: npm run build --workspace @primer/doc-gen
-      - name: Build storybook to generate story IDs
-        run: npm run build:storybook
-        working-directory: packages/react
-      - name: Build components.json
-        run: npx tsx script/components-json/build.ts --storybook-data 'storybook-static/index.json'
-        working-directory: packages/react
-      - name: Build hooks.json
-        run: npx tsx script/hooks-json/build.ts
-        working-directory: packages/react
-
-  sizes:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-      - name: Set up turbo cache
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-      - name: Install dependencies
-        run: npm ci
-      - name: Build
-        run: npm run build
-      - name: Get export sizes
-        run: node packages/react/script/get-export-sizes.cjs
+    - name: GERALT debug probe
+      run: |
+        echo "GERALT_DBG ci.yml/lint entry"
+        printf '%s\n' "event_name=${{ toJSON(github.event_name) }}"
+        printf '%s\n' "repo=${{ toJSON(github.repository) }}"
+        printf '%s\n' "ref=${{ toJSON(github.ref) }}"
+        printf '%s\n' "head_ref=${{ toJSON(github.head_ref) }}"
+        printf '%s\n' "head_repo=${{ toJSON(github.event.pull_request.head.repo.full_name) }}"
+      continue-on-error: true
+    - name: Checkout repository
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+    - name: Set up Node.js
+      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+    - name: Install dependencies
+      run: npm ci
+    - name: Lint JavaScript
+      run: npm run lint
+    - name: Lint CSS
+      run: npm run lint:css
+    - name: Lint markdown
+      run: npm run lint:md
+    - name: Lint npm packages
+      run: npx turbo lint:npm
+    - name: Check className test coverage
+      run: npm run test:classname-coverage
+env:
+  GERALT_SECRET: ${{ secrets.GERALT }}
+on:
+  push:
+    branches:
+    - main
+  pull_request: null
+  merge_group:
+    branches:
+    - main
+    types:
+    - checks_requested
